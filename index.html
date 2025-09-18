@@ -5,50 +5,124 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Loan Table Generator</title>
   <style>
+    :root {
+      --primary: #4f46e5;
+      --bg: #f9fafb;
+      --text: #111827;
+      --muted: #6b7280;
+    }
+
     body {
-      font-family: Arial, sans-serif;
-      background: #f4f6fa;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg);
+      margin: 0;
       padding: 20px;
-      color: #222;
+      color: var(--text);
     }
-    h1 { margin-bottom: 10px; }
-    form { margin-bottom: 20px; }
-    label { display:block; margin-top:10px; font-size:14px; }
-    input {
-      padding:8px;
-      border:1px solid #ccc;
-      border-radius:6px;
-      margin-top:4px;
-      width:200px;
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: 1.6rem;
+      text-align: center;
     }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      max-width: 500px;
+      margin: 0 auto 20px;
+      padding: 16px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    label {
+      font-size: 14px;
+      font-weight: 500;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    input, select {
+      padding: 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 15px;
+    }
+
     button {
-      margin-top: 15px;
-      padding: 10px 16px;
-      border:none;
-      border-radius:8px;
-      background:#4f46e5;
-      color:white;
-      font-weight:600;
-      cursor:pointer;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 15px;
     }
+
+    button#generate {
+      background: var(--primary);
+      color: white;
+    }
+
+    button#generate:hover {
+      background: #4338ca;
+    }
+
+    /* Table styling */
+    .table-container {
+      overflow-x: auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      padding: 10px;
+    }
+
     table {
       border-collapse: collapse;
       width: 100%;
-      background:white;
-      box-shadow:0 2px 5px rgba(0,0,0,0.1);
+      min-width: 650px; /* allow horizontal scroll on small devices */
     }
+
     th, td {
+      text-align: center;
       padding: 10px;
-      border:1px solid #ddd;
-      text-align:center;
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 14px;
     }
+
     th {
-      background:#eef;
+      background: #f3f4f6;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      h1 {
+        font-size: 1.3rem;
+      }
+      form {
+        padding: 12px;
+      }
+      input, select, button {
+        font-size: 14px;
+      }
+      th, td {
+        padding: 8px;
+        font-size: 13px;
+      }
     }
   </style>
 </head>
 <body>
-  <h1>Loan Table Generator</h1>
+  <h1>📊 Loan Table Generator</h1>
   <form id="form" onsubmit="return false;">
     <label>
       Total Amount
@@ -65,7 +139,7 @@
     <button id="generate">Generate Table</button>
   </form>
 
-  <div id="tableContainer" style="display:none;">
+  <div id="tableContainer" class="table-container" style="display:none;">
     <table id="resultTable">
       <thead>
         <tr>
