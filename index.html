@@ -11,6 +11,7 @@
       --accent:#7c3aed;
       --muted:#94a3b8;
       --glass: rgba(255,255,255,0.03);
+      --msg-bg: rgba(124,58,237,0.12);
     }
     *{box-sizing:border-box}
     body{
@@ -41,7 +42,7 @@
       align-items:center;
       justify-content:space-between;
       gap:12px;
-      margin-bottom:18px;
+      margin-bottom:12px;
     }
     header h1{
       margin:0;
@@ -54,7 +55,7 @@
       display:grid;
       grid-template-columns: repeat(auto-fit, minmax(200px,1fr));
       gap:12px;
-      margin-bottom:14px;
+      margin-bottom:10px;
     }
 
     .field {
@@ -140,11 +141,22 @@
       margin-top:6px;
     }
 
+    .msg {
+      margin-top:8px;
+      padding:10px 12px;
+      border-radius:10px;
+      background:var(--msg-bg);
+      color: #efe7ff;
+      font-size:13px;
+      display:none;
+      border:1px solid rgba(124,58,237,0.25);
+    }
+
     /* --- small responsive tweaks for mobile --- */
     @media (max-width:800px){
       header{flex-direction:column;align-items:flex-start;gap:8px}
       .table-wrap { padding:8px; }
-      table { min-width:640px; } /* allow horizontal scroll but smaller min */
+      table { min-width:640px; } 
       thead th, tbody td { padding:10px 8px; font-size:13px; }
       input[type="number"], select { font-size:15px; padding:12px; }
       .field.options { flex-direction:column; align-items:flex-start; gap:8px; }
@@ -195,6 +207,8 @@
       </div>
     </form>
 
+    <div id="ruleMsg" class="msg" role="status" aria-live="polite"></div>
+
     <div id="tableContainer" class="table-wrap" hidden>
       <table id="resultTable" aria-live="polite">
         <thead>
@@ -218,109 +232,113 @@
     const $ = sel => document.querySelector(sel);
     const format = n => Number(n).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
-    // Track last rule to avoid repeated alerts
+    // helpers
+    function parseNumberFromInput(el) {
+      if (!el) return 0;
+      // remove commas/spaces and coerce to Number
+      const raw = String(el.value).replace(/,/g, '').trim();
+      const num = Number(raw);
+      return Number.isFinite(num) ? num : 0;
+    }
+    function setMsg(text, show = true) {
+      const el = $('#ruleMsg');
+      if (!text || !show) {
+        el.style.display = 'none';
+        el.textContent = '';
+      } else {
+        el.style.display = 'block';
+        el.textContent = text;
+      }
+    }
+
+    // track last active rule so we don't spam the same alerts repeatedly
     let lastRule = null;
 
-    function enforceInterestRules(triggerAlert = true) {
-      const totalVal = parseFloat($('#totalAmount').value) || 0;
+    function applyRuleForTotal(totalVal, triggerAlert = true) {
       const rateEl = $('#interestRate');
       const hint = $('#interestHint');
 
       if (totalVal <= 20000) {
         // fixed to 7, disable
-        rateEl.min = 7;
-        rateEl.max = 7;
-        rateEl.step = 1;
-        if (rateEl.value != 7) rateEl.value = 7;
+        const min = 7, max = 7;
+        rateEl.min = min; rateEl.max = max; rateEl.step = 1;
+        if (Number(rateEl.value) !== 7) rateEl.value = 7;
         rateEl.disabled = true;
-        hint.textContent = 'Total ≤ 20000 — interest fixed to 7% (field disabled).';
-
-        if (lastRule !== 'le20000' && triggerAlert) {
-          alert('Total amount is ≤ 20,000 — interest fixed to 7% and field disabled.');
-        }
+        hint.textContent = 'Total ≤ 20,000 — interest fixed to 7% (field disabled).';
+        setMsg('Interest fixed to 7% for totals ≤ 20,000.');
+        if (lastRule !== 'le20000' && triggerAlert) alert('Total amount is ≤ 20,000 — interest fixed to 7% and field disabled.');
         lastRule = 'le20000';
-      } else if (totalVal > 20000 && totalVal <= 30000) {
-        // allow only 6 or 7
-        rateEl.min = 6;
-        rateEl.max = 7;
-        rateEl.step = 1;
-        rateEl.disabled = false;
-        hint.textContent = 'Total between 20,001 and 30,000 — interest must be 6 or 7%.';
-
-        const val = parseInt(rateEl.value) || 6;
-        if (val < 6 || val > 7) {
-          rateEl.value = 6; // clamp to 6 by default
-          if (triggerAlert && lastRule !== 'bt20001_30000') {
-            alert('Total is between 20,001 and 30,000 — interest allowed values are 6 or 7%. Value set to 6.');
-          } else if (triggerAlert) {
-            // if rule same but value out of range, still alert
-            alert('Interest value must be 6 or 7% for this amount range. Value adjusted to 6.');
-          }
-        } else {
-          if (triggerAlert && lastRule !== 'bt20001_30000') {
-            alert('Total is between 20,001 and 30,000 — interest must be 6 or 7%.');
-          }
-        }
-        lastRule = 'bt20001_30000';
-
-      } else { // totalVal >= 30000
-        rateEl.min = 8;
-        rateEl.max = 10;
-        rateEl.step = 1;
-        rateEl.disabled = false;
-        hint.textContent = 'Total ≥ 30,000 — interest must be 8, 9 or 10%.';
-
-        const val = parseInt(rateEl.value) || 8;
-        if (val < 8 || val > 10) {
-          rateEl.value = 8; // clamp to 8 by default
-          if (triggerAlert && lastRule !== 'ge30000') {
-            alert('Total is ≥ 30,000 — interest allowed values are 8, 9 or 10%. Value set to 8.');
-          } else if (triggerAlert) {
-            alert('Interest value must be 8–10% for this amount range. Value adjusted to 8.');
-          }
-        } else {
-          if (triggerAlert && lastRule !== 'ge30000') {
-            alert('Total is ≥ 30,000 — interest must be 8, 9 or 10%.');
-          }
-        }
-        lastRule = 'ge30000';
+        return {min, max, rule:'le20000'};
       }
+
+      if (totalVal > 20000 && totalVal <= 30000) {
+        const min = 6, max = 7;
+        rateEl.min = min; rateEl.max = max; rateEl.step = 1;
+        rateEl.disabled = false;
+        // clamp current value if outside
+        let cur = Number(rateEl.value) || min;
+        if (cur < min || cur > max) {
+          // clamp and inform
+          rateEl.value = min;
+          if (triggerAlert) alert('Total is between 20,001 and 30,000 — interest allowed values are 6 or 7%. Value set to 6.');
+        }
+        hint.textContent = 'Total between 20,001 and 30,000 — interest must be 6 or 7%.';
+        setMsg('Interest must be 6 or 7% for totals between 20,001 and 30,000.');
+        if (lastRule !== 'bt20001_30000' && triggerAlert) alert('Total is between 20,001 and 30,000 — interest must be 6 or 7%.');
+        lastRule = 'bt20001_30000';
+        return {min, max, rule:'bt20001_30000'};
+      }
+
+      // totalVal > 30000
+      const min = 8, max = 10;
+      rateEl.min = min; rateEl.max = max; rateEl.step = 1;
+      rateEl.disabled = false;
+      let cur = Number(rateEl.value) || min;
+      if (cur < min || cur > max) {
+        rateEl.value = min;
+        if (triggerAlert) alert('Total is ≥ 30,000 — interest allowed values are 8, 9 or 10%. Value set to 8.');
+      }
+      hint.textContent = 'Total ≥ 30,000 — interest must be 8, 9 or 10%.';
+      setMsg('Interest must be 8–10% for totals ≥ 30,000.');
+      if (lastRule !== 'ge30000' && triggerAlert) alert('Total is ≥ 30,000 — interest must be 8, 9 or 10%.');
+      lastRule = 'ge30000';
+      return {min, max, rule:'ge30000'};
+    }
+
+    // called whenever the totalAmount changes or on load
+    function enforceInterestRules(triggerAlert = false) {
+      const totalVal = parseNumberFromInput($('#totalAmount'));
+      return applyRuleForTotal(totalVal, triggerAlert);
     }
 
     function computeAndRender() {
-      const total = parseFloat($('#totalAmount').value) || 0;
-      const rateInput = parseInt($('#interestRate').value) || 0;
-      const months = parseInt($('#months').value) || 0;
-      const mode = $('#rateMode').value; // 'annual' or 'monthly'
+      const total = parseNumberFromInput($('#totalAmount'));
+      const months = Math.max(1, parseInt($('#months').value || 0, 10));
+      // enforce rules first (and allow alerts to fire)
+      const rule = enforceInterestRules(true);
 
-      // Ensure rules enforced right before generation; if out-of-range, enforceInterestRules will alert/adjust
-      enforceInterestRules(true);
+      // read and validate interest after rule enforcement
+      const rateRaw = $('#interestRate').value;
+      const rateInput = Number(String(rateRaw).replace(/,/g,'').trim()) || 0;
 
-      // Validate
       if (total <= 0 || months <= 0) {
         alert('Enter valid Total Amount and Months.');
         return;
       }
 
-      // check interest allowed by current rule
-      const rateMin = parseInt($('#interestRate').min) || 1;
-      const rateMax = parseInt($('#interestRate').max) || 10;
+      // validate interest range
+      const rateMin = Number($('#interestRate').min) || 1;
+      const rateMax = Number($('#interestRate').max) || 10;
       if (rateInput < rateMin || rateInput > rateMax) {
         alert(`Interest must be between ${rateMin} and ${rateMax} for this total amount. Adjust the Total Amount or Interest.`);
         return;
       }
 
-      // EMI here = fixed principal repayment per month (as in your example)
+      // principal per month
       const principalPerMonth = total / months;
-
-      // Interpret rateInput: it's a percent number (e.g., 6 -> 6%)
-      // monthly percent decimal:
-      let monthlyPercentDecimal;
-      if (mode === 'annual') {
-        monthlyPercentDecimal = (rateInput / 100) / 12; // treat input as annual percent then divide by 12
-      } else {
-        monthlyPercentDecimal = (rateInput / 100); // treat input as monthly percent directly
-      }
+      const mode = $('#rateMode').value;
+      // interpret rateInput as percent, compute monthly decimal
+      const monthlyPercentDecimal = mode === 'annual' ? (rateInput / 100) / 12 : (rateInput / 100);
 
       const tbody = $('#resultTable tbody');
       tbody.innerHTML = '';
@@ -341,7 +359,6 @@
         `;
         tbody.appendChild(tr);
 
-        // reduce opening by principal repaid
         opening = opening - principalPerMonth;
         if (opening < 0.00001) opening = 0;
       }
@@ -351,7 +368,7 @@
       $('#note').textContent = `You entered ${rateInput} → interpreted as ${rateInput}% (${mode === 'annual' ? 'annual ÷ 12 per month' : 'monthly directly'}). EMI (principal) = ${format(principalPerMonth)} per month.`;
     }
 
-    // Events
+    // events
     document.getElementById('generate').addEventListener('click', computeAndRender);
 
     document.getElementById('reset').addEventListener('click', () => {
@@ -362,28 +379,31 @@
       $('#tableContainer').hidden = true;
       $('#note').style.display = 'none';
       lastRule = null;
-      enforceInterestRules(false); // apply silently
+      setMsg('', false);
+      enforceInterestRules(false);
     });
 
-    // Enforce rules whenever total amount changes (user typing)
-    $('#totalAmount').addEventListener('change', () => enforceInterestRules(true));
-    // also trigger on input (but debounce could be added; keeping simple)
-    $('#totalAmount').addEventListener('input', () => enforceInterestRules(false));
+    // attach robust listeners
+    const totalInput = $('#totalAmount');
+    ['input','change','blur','paste'].forEach(e => totalInput.addEventListener(e, () => enforceInterestRules(e !== 'input')));
 
-    // also ensure interest respects min/max if user manually types
+    // also keep interest value clamped if user types
     $('#interestRate').addEventListener('input', () => {
       const el = $('#interestRate');
-      const min = parseInt(el.min) || 1;
-      const max = parseInt(el.max) || 10;
-      let val = parseInt(el.value) || min;
+      const min = Number(el.min) || 1;
+      const max = Number(el.max) || 10;
+      let val = Number(String(el.value).replace(/,/g,'').trim());
+      if (!Number.isFinite(val)) val = min;
       if (val < min) val = min;
       if (val > max) val = max;
-      el.value = val;
+      el.value = Math.round(val);
     });
 
-    // initial setup
-    enforceInterestRules(false);
-    computeAndRender();
+    // initial setup on load
+    window.addEventListener('load', () => {
+      enforceInterestRules(false);
+      computeAndRender();
+    });
   </script>
 </body>
 </html>
