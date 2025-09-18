@@ -46,7 +46,7 @@
       gap: 6px;
     }
 
-    input, select {
+    input {
       padding: 10px;
       border: 1px solid #d1d5db;
       border-radius: 8px;
@@ -71,7 +71,6 @@
       background: #4338ca;
     }
 
-    /* Table styling */
     .table-container {
       overflow-x: auto;
       background: white;
@@ -83,7 +82,7 @@
     table {
       border-collapse: collapse;
       width: 100%;
-      min-width: 650px; /* allow horizontal scroll on small devices */
+      min-width: 650px;
     }
 
     th, td {
@@ -103,21 +102,11 @@
       border-bottom: none;
     }
 
-    /* Responsive */
     @media (max-width: 640px) {
-      h1 {
-        font-size: 1.3rem;
-      }
-      form {
-        padding: 12px;
-      }
-      input, select, button {
-        font-size: 14px;
-      }
-      th, td {
-        padding: 8px;
-        font-size: 13px;
-      }
+      h1 { font-size: 1.3rem; }
+      form { padding: 12px; }
+      input, button { font-size: 14px; }
+      th, td { padding: 8px; font-size: 13px; }
     }
   </style>
 </head>
@@ -126,11 +115,11 @@
   <form id="form" onsubmit="return false;">
     <label>
       Total Amount
-      <input id="totalAmount" type="number" value="20000" />
+      <input id="totalAmount" type="number" value="20000" step="1" />
     </label>
     <label>
       Interest Rate (1–10 → % per month)
-      <input id="interestRate" type="number" min="1" max="10" value="4" />
+      <input id="interestRate" type="number" min="1" max="10" value="4" step="1" />
     </label>
     <label>
       Total Months
@@ -157,11 +146,14 @@
 
   <script>
     const $ = sel => document.querySelector(sel);
-    const format = n => Number(n).toLocaleString(undefined, {maximumFractionDigits:2});
+
+    // format with/without decimals
+    const formatInt = n => Number(n).toLocaleString(undefined, {maximumFractionDigits: 0});
+    const formatDec = n => Number(n).toLocaleString(undefined, {maximumFractionDigits: 2});
 
     function computeAndRender() {
-      const total = parseFloat($('#totalAmount').value) || 0;
-      const rate = parseFloat($('#interestRate').value) || 0; // directly as %
+      const total = parseInt($('#totalAmount').value) || 0;
+      const rate = parseInt($('#interestRate').value) || 0; // integer %
       const months = parseInt($('#months').value) || 0;
 
       if (total <= 0 || months <= 0 || rate <= 0) {
@@ -183,11 +175,11 @@
 
         tr.innerHTML = `
           <td>${m}</td>
-          <td>${format(opening)}</td>
-          <td>${rate}%</td>
-          <td>${format(interestAmt)}</td>
-          <td>${format(principalPerMonth)}</td>
-          <td>${format(totalForMonth)}</td>
+          <td>${formatInt(opening)}</td>   <!-- no decimals -->
+          <td>${rate}%</td>               <!-- no decimals -->
+          <td>${formatDec(interestAmt)}</td>
+          <td>${formatDec(principalPerMonth)}</td>
+          <td>${formatInt(totalForMonth)}</td> <!-- no decimals -->
         `;
         tbody.appendChild(tr);
 
