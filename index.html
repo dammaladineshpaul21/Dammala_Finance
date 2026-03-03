@@ -23,7 +23,9 @@
       justify-content:center;
       background: linear-gradient(180deg, #071127 0%, #07182a 60%);
       color:#e6eef8;
-      padding:28px;
+      padding:20px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
 
     .app {
@@ -53,7 +55,7 @@
 
     form.controls {
       display:grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px,1fr));
+      grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
       gap:12px;
       margin-bottom:10px;
     }
@@ -75,6 +77,14 @@
       color:inherit;
       outline:none;
       font-size:14px;
+      min-height:44px;
+      transition: border-color 0.2s ease, background 0.2s ease;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    input[type="number"]:focus, select:focus {
+      border-color: rgba(124,58,237,0.4);
+      background: rgba(255,255,255,0.05);
     }
 
     .options {
@@ -88,6 +98,12 @@
       border:none;
       cursor:pointer;
       font-weight:600;
+      font-size:14px;
+      min-height:44px;
+      transition: all 0.2s ease;
+    }
+    .btn:active {
+      transform: scale(0.98);
     }
     .btn.primary {
       background:linear-gradient(90deg,var(--accent), #4f46e5);
@@ -103,6 +119,8 @@
     .table-wrap {
       margin-top:18px;
       overflow:auto;
+      overflow-x:auto;
+      -webkit-overflow-scrolling: touch;
       border-radius:12px;
       padding:12px;
       background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));
@@ -152,19 +170,76 @@
       border:1px solid rgba(124,58,237,0.25);
     }
 
-    /* --- small responsive tweaks for mobile --- */
+    /* --- Mobile-friendly responsive design --- */
     @media (max-width:800px){
-      header{flex-direction:column;align-items:flex-start;gap:8px}
-      .table-wrap { padding:8px; }
-      table { min-width:640px; } 
+      body { padding:16px; }
+      .app { padding:16px; }
+      
+      header { flex-direction:column; align-items:flex-start; gap:8px; }
+      header h1 { font-size:18px; }
+      header p { font-size:12px; }
+      
+      form.controls { 
+        grid-template-columns: 1fr;
+        gap:14px;
+      }
+      
+      .field.options { 
+        flex-direction:column; 
+        align-items:stretch; 
+        gap:10px;
+        grid-column: span 1 !important;
+      }
+      .field.options label { display:none; }
+      .field.options .btn { 
+        width:100%; 
+        padding:14px;
+        font-size:15px;
+      }
+      
+      input[type="number"] { 
+        font-size:16px; 
+        padding:14px 12px;
+      }
+      
+      label { font-size:13px; }
+      .small { font-size:12px; }
+      
+      .table-wrap { 
+        padding:6px; 
+        margin-left:-16px;
+        margin-right:-16px;
+        border-radius:0;
+      }
+      table { min-width:700px; } 
       thead th, tbody td { padding:10px 8px; font-size:13px; }
-      input[type="number"], select { font-size:15px; padding:12px; }
-      .field.options { flex-direction:column; align-items:flex-start; gap:8px; }
-      .field.options .btn { width:100%; }
     }
-    @media (max-width:420px){
-      table { min-width:560px; }
+    
+    @media (max-width:600px){
+      body { padding:12px; }
+      .app { padding:12px; border-radius:12px; }
+      
+      header h1 { font-size:17px; }
+      .table-wrap { padding:4px; }
+      table { min-width:650px; }
       thead th, tbody td { font-size:12px; padding:8px 6px; }
+    }
+    
+    @media (max-width:420px){
+      body { padding:8px; }
+      .app { padding:10px; border-radius:10px; }
+      
+      header h1 { font-size:16px; }
+      header p { font-size:11px; }
+      .small { font-size:11px; }
+      
+      form.controls { gap:12px; }
+      .field.options .btn { padding:12px; font-size:14px; }
+      
+      .table-wrap { padding:2px; }
+      table { min-width:580px; }
+      thead th { font-size:11px; padding:7px 4px; }
+      tbody td { font-size:11px; padding:7px 4px; }
     }
   </style>
 </head>
@@ -173,7 +248,7 @@
     <header>
       <div>
         <h1>Loan table generator</h1>
-        <p class="muted">Enter totals — table will show monthly interest, EMI (principal part) and totals.</p>
+        <p class="muted">Enter flexible values — table will show monthly interest, EMI (principal part) and totals.</p>
       </div>
       <div class="small">Made quick & simple ✨</div>
     </header>
@@ -181,27 +256,21 @@
     <form id="form" class="controls" onsubmit="return false;">
       <div class="field">
         <label>Total Amount</label>
-        <input id="totalAmount" type="number" min="0" step="0.01" value="20000" />
+        <input id="totalAmount" type="number" step="0.01" value="20000" />
       </div>
 
       <div class="field">
-        <label>Interest Rate (1–10) — enter 1 for 1%, 2 for 2%, etc.</label>
-        <input id="interestRate" type="number" min="1" max="10" step="1" value="6" />
-        <div id="interestHint" class="small">Use numbers 1..10 (1 = 1%). Keep the dropdown to choose how it's applied.</div>
+        <label>Monthly Interest Rate (%) — enter number directly (e.g., 1 for 1%, 2 for 2%)</label>
+        <input id="interestRate" type="number" step="0.01" value="6" />
+        <div id="interestHint" class="small">Enter the monthly interest rate as a number (e.g., 1 = 1% per month).</div>
       </div>
 
       <div class="field">
         <label>Total Months</label>
-        <input id="months" type="number" min="1" step="1" value="8" />
+        <input id="months" type="number" step="1" value="8" />
       </div>
 
       <div class="field options" style="align-items:center;grid-column: span 3;">
-        <label style="margin-right:6px;">Interpretation</label>
-        <select id="rateMode" style="max-width:240px">
-          <option value="annual" selected>Number is annual % (we use value ÷ 12 per month)</option>
-          <option value="monthly">Number is monthly % directly</option>
-        </select>
-
         <button id="generate" class="btn primary" style="margin-left:auto">Generate Table</button>
         <button id="reset" class="btn ghost" type="button">Reset</button>
       </div>
@@ -255,54 +324,11 @@
     let lastRule = null;
 
     function applyRuleForTotal(totalVal, triggerAlert = true) {
+      // Flexible: no rules applied, all inputs are free
       const rateEl = $('#interestRate');
-      const hint = $('#interestHint');
-
-      if (totalVal <= 20000) {
-        // fixed to 7, disable
-        const min = 7, max = 7;
-        rateEl.min = min; rateEl.max = max; rateEl.step = 1;
-        if (Number(rateEl.value) !== 7) rateEl.value = 7;
-        rateEl.disabled = true;
-        hint.textContent = 'Total ≤ 20,000 — interest fixed to 7% (field disabled).';
-        setMsg('Interest fixed to 7% for totals ≤ 20,000.');
-        if (lastRule !== 'le20000' && triggerAlert) alert('Total amount is ≤ 20,000 — interest fixed to 7% and field disabled.');
-        lastRule = 'le20000';
-        return {min, max, rule:'le20000'};
-      }
-
-      if (totalVal > 20000 && totalVal <= 30000) {
-        const min = 6, max = 7;
-        rateEl.min = min; rateEl.max = max; rateEl.step = 1;
-        rateEl.disabled = false;
-        // clamp current value if outside
-        let cur = Number(rateEl.value) || min;
-        if (cur < min || cur > max) {
-          // clamp and inform
-          rateEl.value = min;
-          if (triggerAlert) alert('Total is between 20,001 and 30,000 — interest allowed values are 6 or 7%. Value set to 6.');
-        }
-        hint.textContent = 'Total between 20,001 and 30,000 — interest must be 6 or 7%.';
-        setMsg('Interest must be 6 or 7% for totals between 20,001 and 30,000.');
-        if (lastRule !== 'bt20001_30000' && triggerAlert) alert('Total is between 20,001 and 30,000 — interest must be 6 or 7%.');
-        lastRule = 'bt20001_30000';
-        return {min, max, rule:'bt20001_30000'};
-      }
-
-      // totalVal > 30000
-      const min = 8, max = 10;
-      rateEl.min = min; rateEl.max = max; rateEl.step = 1;
       rateEl.disabled = false;
-      let cur = Number(rateEl.value) || min;
-      if (cur < min || cur > max) {
-        rateEl.value = min;
-        if (triggerAlert) alert('Total is ≥ 30,000 — interest allowed values are 8, 9 or 10%. Value set to 8.');
-      }
-      hint.textContent = 'Total ≥ 30,000 — interest must be 8, 9 or 10%.';
-      setMsg('Interest must be 8–10% for totals ≥ 30,000.');
-      if (lastRule !== 'ge30000' && triggerAlert) alert('Total is ≥ 30,000 — interest must be 8, 9 or 10%.');
-      lastRule = 'ge30000';
-      return {min, max, rule:'ge30000'};
+      setMsg('', false);
+      return {rule:'flexible'};
     }
 
     // called whenever the totalAmount changes or on load
@@ -326,19 +352,15 @@
         return;
       }
 
-      // validate interest range
-      const rateMin = Number($('#interestRate').min) || 1;
-      const rateMax = Number($('#interestRate').max) || 10;
-      if (rateInput < rateMin || rateInput > rateMax) {
-        alert(`Interest must be between ${rateMin} and ${rateMax} for this total amount. Adjust the Total Amount or Interest.`);
+      if (rateInput < 0) {
+        alert('Interest rate must be a positive number.');
         return;
       }
 
       // principal per month
       const principalPerMonth = total / months;
-      const mode = $('#rateMode').value;
-      // interpret rateInput as percent, compute monthly decimal
-      const monthlyPercentDecimal = mode === 'annual' ? (rateInput / 100) / 12 : (rateInput / 100);
+      // interpret rateInput as monthly percent, compute monthly decimal
+      const monthlyPercentDecimal = rateInput / 100;
 
       const tbody = $('#resultTable tbody');
       tbody.innerHTML = '';
@@ -365,7 +387,7 @@
 
       $('#tableContainer').hidden = false;
       $('#note').style.display = 'block';
-      $('#note').textContent = `You entered ${rateInput} → interpreted as ${rateInput}% (${mode === 'annual' ? 'annual ÷ 12 per month' : 'monthly directly'}). EMI (principal) = ${format(principalPerMonth)} per month.`;
+      $('#note').textContent = `Monthly interest rate: ${rateInput}% | EMI (principal): ${format(principalPerMonth)} per month.`;
     }
 
     // events
@@ -375,7 +397,6 @@
       $('#totalAmount').value = 20000;
       $('#interestRate').value = 6;
       $('#months').value = 8;
-      $('#rateMode').value = 'annual';
       $('#tableContainer').hidden = true;
       $('#note').style.display = 'none';
       lastRule = null;
@@ -387,17 +408,7 @@
     const totalInput = $('#totalAmount');
     ['input','change','blur','paste'].forEach(e => totalInput.addEventListener(e, () => enforceInterestRules(e !== 'input')));
 
-    // also keep interest value clamped if user types
-    $('#interestRate').addEventListener('input', () => {
-      const el = $('#interestRate');
-      const min = Number(el.min) || 1;
-      const max = Number(el.max) || 10;
-      let val = Number(String(el.value).replace(/,/g,'').trim());
-      if (!Number.isFinite(val)) val = min;
-      if (val < min) val = min;
-      if (val > max) val = max;
-      el.value = Math.round(val);
-    });
+    // No clamping needed - flexible input
 
     // initial setup on load
     window.addEventListener('load', () => {
