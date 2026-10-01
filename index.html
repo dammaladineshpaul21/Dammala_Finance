@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Loan Table Generator</title>
+  <title>Dammala Finance Helper</title>
   <style>
     :root{
       --bg:#ffffff;
@@ -69,7 +69,7 @@
       color:var(--muted);
       margin-bottom:6px;
     }
-    input[type="number"], select {
+    input[type="number"], input[type="text"], input[type="tel"], textarea, select {
       padding:10px 12px;
       border-radius:10px;
       border:1px solid rgba(14,165,233,0.2);
@@ -78,11 +78,16 @@
       outline:none;
       font-size:14px;
       min-height:44px;
+      font-family: inherit;
       transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
       -webkit-appearance: none;
       appearance: none;
     }
-    input[type="number"]:focus, select:focus {
+    textarea {
+      min-height:76px;
+      resize:vertical;
+    }
+    input[type="number"]:focus, input[type="text"]:focus, input[type="tel"]:focus, textarea:focus, select:focus {
       border-color: #0ea5e9;
       background: #ffffff;
       box-shadow: 0 0 0 3px rgba(14,165,233,0.1);
@@ -181,6 +186,56 @@
       border:1px solid rgba(14,165,233,0.25);
     }
 
+    /* --- Customer Modal Dialog --- */
+    dialog#customerDialog {
+      width: 100%;
+      max-width: 480px;
+      border: 1px solid rgba(14,165,233,0.2);
+      border-radius: 16px;
+      padding: 24px;
+      background: #ffffff;
+      color: #0f172a;
+      box-shadow: 0 20px 50px rgba(15,23,42,0.2);
+    }
+    dialog#customerDialog::backdrop {
+      background: rgba(15, 23, 42, 0.45);
+      backdrop-filter: blur(4px);
+    }
+    .modal-header {
+      margin-bottom: 16px;
+    }
+    .modal-header h2 {
+      margin: 0 0 4px 0;
+      font-size: 18px;
+    }
+    .modal-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .modal-grid .full-width {
+      grid-column: span 2;
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .customer-summary {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: rgba(240,249,255,0.7);
+      border: 1px solid rgba(14,165,233,0.2);
+      font-size: 13px;
+      display: none;
+    }
+    .customer-summary strong {
+      color: #0f172a;
+    }
+
     /* --- Mobile-friendly responsive design --- */
     @media (max-width:800px){
       body { padding:16px; }
@@ -208,7 +263,7 @@
         font-size:15px;
       }
       
-      input[type="number"] { 
+      input[type="number"], input[type="text"], input[type="tel"], textarea { 
         font-size:16px; 
         padding:14px 12px;
       }
@@ -234,6 +289,8 @@
       .table-wrap { padding:4px; }
       table { min-width:650px; }
       thead th, tbody td { font-size:12px; padding:8px 6px; }
+      .modal-grid { grid-template-columns: 1fr; }
+      .modal-grid .full-width { grid-column: span 1; }
     }
     
     @media (max-width:420px){
@@ -252,13 +309,35 @@
       thead th { font-size:11px; padding:7px 4px; }
       tbody td { font-size:11px; padding:7px 4px; }
     }
+
+    .btn.secondary {
+      background: #f0f9ff;
+      color: #0284c7;
+      border: 1px solid rgba(14,165,233,0.35);
+    }
+    .btn.secondary:hover {
+      background: #e0f2fe;
+      border-color: #0ea5e9;
+    }
+
+    @media print {
+      body { background: #fff; padding: 0; display: block; }
+      .app { box-shadow: none; border: none; max-width: 100%; padding: 0; }
+      .field.options, #interestHint, .small, dialog { display: none !important; }
+      #note { display: block !important; margin-top: 12px; }
+      .table-wrap { overflow: visible; background: transparent; border: none; padding: 0; }
+      table { min-width: 100%; border-collapse: collapse; border-spacing: 0; }
+      thead th, tbody td { border: 1px solid #cbd5e1; padding: 8px 10px; }
+    }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
   <div class="app">
     <header>
       <div>
-        <h1>Loan table generator</h1>
+        <h1>Dammala Finance Helper</h1>
         <p class="muted">Enter flexible values — table will show monthly interest, EMI (principal part) and totals.</p>
       </div>
       <div class="small">Made quick & simple ✨</div>
@@ -283,11 +362,14 @@
 
       <div class="field options" style="align-items:center;grid-column: span 3;">
         <button id="generate" class="btn primary" style="margin-left:auto">Generate Table</button>
+        <button id="downloadPdf" class="btn secondary" type="button">Download PDF</button>
         <button id="reset" class="btn ghost" type="button">Reset</button>
       </div>
     </form>
 
     <div id="ruleMsg" class="msg" role="status" aria-live="polite"></div>
+
+    <div id="customerSummary" class="customer-summary"></div>
 
     <div id="tableContainer" class="table-wrap" hidden>
       <table id="resultTable" aria-live="polite">
@@ -307,6 +389,43 @@
 
     <div id="note" class="small" style="margin-top:8px;color:var(--muted);display:none"></div>
   </div>
+
+  <!-- Customer Details Modal before PDF Download -->
+  <dialog id="customerDialog">
+    <form id="customerForm" method="dialog">
+      <div class="modal-header">
+        <h2>Customer Details</h2>
+        <p class="muted">Please enter customer details to include in the PDF.</p>
+      </div>
+
+      <div class="modal-grid">
+        <div class="field">
+          <label for="firstName">First Name *</label>
+          <input id="firstName" type="text" placeholder="Enter first name" required />
+        </div>
+
+        <div class="field">
+          <label for="lastName">Last Name *</label>
+          <input id="lastName" type="text" placeholder="Enter last name" required />
+        </div>
+
+        <div class="field full-width">
+          <label for="mobileNumber">Mobile Number *</label>
+          <input id="mobileNumber" type="tel" placeholder="Enter mobile number" required />
+        </div>
+
+        <div class="field full-width">
+          <label for="address">Address *</label>
+          <textarea id="address" placeholder="Enter full address" required></textarea>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button id="cancelModal" class="btn ghost" type="button">Cancel</button>
+        <button id="confirmDownload" class="btn primary" type="submit">Download PDF</button>
+      </div>
+    </form>
+  </dialog>
 
   <script>
     const $ = sel => document.querySelector(sel);
@@ -401,13 +520,137 @@
       $('#note').textContent = `Monthly interest rate: ${rateInput}% | EMI (principal): ${format(principalPerMonth)} per month.`;
     }
 
+    function openCustomerModal() {
+      // Ensure table is up to date with current inputs before opening modal
+      computeAndRender();
+      if ($('#tableContainer').hidden) return;
+
+      const dialog = $('#customerDialog');
+      if (typeof dialog.showModal === 'function') {
+        dialog.showModal();
+      }
+    }
+
+    function generatePDFWithCustomer(customer) {
+      const total = parseNumberFromInput($('#totalAmount'));
+      const months = Math.max(1, parseInt($('#months').value || 0, 10));
+      const rateRaw = $('#interestRate').value;
+      const rateInput = Number(String(rateRaw).replace(/,/g, '').trim()) || 0;
+      const principalPerMonth = total / months;
+
+      const fullName = `${customer.firstName} ${customer.lastName}`.trim();
+
+      // Update on-page summary (also useful for print fallback)
+      const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+      const summaryEl = $('#customerSummary');
+      summaryEl.style.display = 'block';
+      summaryEl.innerHTML = `
+        <strong>Customer:</strong> ${esc(fullName)} &nbsp;|&nbsp;
+        <strong>Mobile:</strong> ${esc(customer.mobileNumber)} &nbsp;|&nbsp;
+        <strong>Address:</strong> ${esc(customer.address)}
+      `;
+
+      // Use jsPDF if loaded, otherwise fallback to browser print-to-PDF
+      if (window.jspdf && window.jspdf.jsPDF) {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // Title
+        doc.setFontSize(18);
+        doc.setTextColor(15, 23, 42);
+        doc.text('Loan Repayment Schedule', 14, 18);
+
+        // Customer Details Box
+        doc.setFillColor(240, 249, 255);
+        doc.setDrawColor(186, 230, 253);
+        const addressLines = doc.splitTextToSize(`Address: ${customer.address}`, 174);
+        const boxHeight = 20 + (addressLines.length * 5);
+        doc.roundedRect(14, 23, 182, boxHeight, 2, 2, 'FD');
+
+        doc.setFontSize(10);
+        doc.setTextColor(15, 23, 42);
+        doc.setFont(undefined, 'bold');
+        doc.text('Customer Details', 18, 30);
+
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(9.5);
+        doc.text(`First Name: ${customer.firstName}`, 18, 36);
+        doc.text(`Last Name: ${customer.lastName}`, 105, 36);
+        doc.text(`Mobile Number: ${customer.mobileNumber}`, 18, 42);
+        doc.text(addressLines, 18, 48);
+
+        // Loan Summary Line
+        const loanSummaryY = 23 + boxHeight + 7;
+        doc.setFontSize(10);
+        doc.setTextColor(100, 116, 139);
+        doc.text(
+          `Total Amount: ${format(total)}   |   Monthly Interest Rate: ${rateInput}%   |   Total Months: ${months}   |   EMI (Principal): ${format(principalPerMonth)}`,
+          14,
+          loanSummaryY
+        );
+
+        doc.autoTable({
+          html: '#resultTable',
+          startY: loanSummaryY + 5,
+          theme: 'grid',
+          headStyles: {
+            fillColor: [14, 165, 233],
+            textColor: 255,
+            fontStyle: 'bold',
+            fontSize: 9.5
+          },
+          bodyStyles: {
+            fontSize: 9,
+            textColor: [15, 23, 42]
+          },
+          alternateRowStyles: {
+            fillColor: [240, 249, 255]
+          }
+        });
+
+        const safeName = fullName.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'customer';
+        doc.save(`loan-schedule-${safeName}-${total}.pdf`);
+      } else {
+        window.print();
+      }
+    }
+
     // events
     document.getElementById('generate').addEventListener('click', computeAndRender);
+    document.getElementById('downloadPdf').addEventListener('click', openCustomerModal);
+
+    document.getElementById('cancelModal').addEventListener('click', () => {
+      $('#customerDialog').close();
+    });
+
+    document.getElementById('customerForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const customer = {
+        firstName: $('#firstName').value.trim(),
+        lastName: $('#lastName').value.trim(),
+        mobileNumber: $('#mobileNumber').value.trim(),
+        address: $('#address').value.trim()
+      };
+
+      if (!customer.firstName || !customer.lastName || !customer.mobileNumber || !customer.address) {
+        alert('Please fill in all customer details.');
+        return;
+      }
+
+      $('#customerDialog').close();
+      generatePDFWithCustomer(customer);
+    });
 
     document.getElementById('reset').addEventListener('click', () => {
       $('#totalAmount').value = 20000;
       $('#interestRate').value = 6;
       $('#months').value = 8;
+      $('#firstName').value = '';
+      $('#lastName').value = '';
+      $('#mobileNumber').value = '';
+      $('#address').value = '';
+      $('#customerSummary').style.display = 'none';
+      $('#customerSummary').innerHTML = '';
       $('#tableContainer').hidden = true;
       $('#note').style.display = 'none';
       lastRule = null;
